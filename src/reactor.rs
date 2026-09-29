@@ -23,6 +23,19 @@ pub mod safety {
             None
         }
     }
+    
+    pub fn check_coolant_temp(temp: u32) {
+        if temp > 1000 {
+            panic!("CRITICAL OVERHEAT! Reactor core melting down!")
+        } else {
+            println!("Coolant temperature nominal: {temp}°C");
+        }
+    }
+
+    pub fn parse_reactor_id(reactor_id: &str) -> Result<u32, String> {
+        let id = reactor_id.trim().parse::<u32>().map_err(|_| String::from("Invalid reactor ID format!"))?;
+        Ok(id)
+    }
 }
 
 pub fn process_command(cmd: ReactorCommand) {
@@ -42,5 +55,6 @@ pub fn process_command(cmd: ReactorCommand) {
 
     }
 }
+
 
 
