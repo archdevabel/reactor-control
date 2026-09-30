@@ -2,8 +2,10 @@ use std::io;
 use std::collections::HashMap;
 
 mod reactor;
-
 use reactor::{process_command, safety::check_reactor_sensor, safety::check_coolant_temp, safety::parse_reactor_id, ReactorCommand, PowerLevel};
+
+mod diagnose;
+use diagnose::{ReactorCore, CoolantPump, Diagnose, print_diagnosis, TelemetryBuffer};
 
 fn main() {
     let sectors = vec![2, 5, 7, 9];
@@ -65,5 +67,15 @@ fn main() {
     };
 
     check_coolant_temp(temp);
+
+    let reactor = ReactorCore { core_id: 1, temp: 850 };
+    let pump = CoolantPump { pump_id: 1, is_active: true };
+    let telemetry_u32 = TelemetryBuffer { value: 42 };
+    let telemetry_f64 = TelemetryBuffer { value: 3.14 };
+
+    print_diagnosis(&reactor);
+    print_diagnosis(&pump);
+    print_diagnosis(&telemetry_u32);
+    print_diagnosis(&telemetry_f64);
 
 }

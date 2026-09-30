@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum PowerLevel {
     Low,
     Medium,
@@ -57,4 +57,31 @@ pub fn process_command(cmd: ReactorCommand) {
 }
 
 
+#[cfg(test)]
+mod tests {
+    use super::*;
 
+    #[test]
+    fn test_parser_reactor_id_valid() {
+        let result = safety::parse_reactor_id(" 42 ");
+        assert_eq!(result, Ok(42));
+    }
+
+    #[test]
+    fn test_parser_reactor_id_invalid() {
+        let result = safety::parse_reactor_id("meltdown");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_check_reactor_sensor_critical() {
+        let status = safety::check_reactor_sensor(7);
+        assert_eq!(status, Some(PowerLevel::Critical));
+    }
+
+    #[test]
+    #[should_panic(expected = "CRITICAL OVERHEAT!")]
+    fn test_coolant_temp_overheat_panics() {
+        safety::check_coolant_temp(1050);
+    }
+}
