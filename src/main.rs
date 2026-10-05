@@ -5,9 +5,16 @@ mod reactor;
 use reactor::{process_command, safety::check_reactor_sensor, safety::check_coolant_temp, safety::parse_reactor_id, ReactorCommand, PowerLevel};
 
 mod diagnose;
-use diagnose::{ReactorCore, CoolantPump, Diagnose, print_diagnosis, TelemetryBuffer};
+use diagnose::{ReactorCore, CoolantPump, Diagnose, print_diagnosis, TelemetryBuffer, compare_logs};
 
 fn main() {
+    let log1 = "Core 1 Nominal";
+    let log2 = "Pump 2 Overheat Warning!";
+
+    let more_detail_log = compare_logs(log1, log2);
+
+    println!("More detail log: {more_detail_log}");
+
     let sectors = vec![2, 5, 7, 9];
     let mut sector_status: HashMap<u32, PowerLevel> = HashMap::new();
         

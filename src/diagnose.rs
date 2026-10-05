@@ -34,6 +34,14 @@ impl<T: std::fmt::Display> Diagnose for TelemetryBuffer<T> {
     }
 }
 
+pub fn compare_logs<'a>(log1: &'a str, log2: &'a str) -> &'a str {
+    if log1.len() >= log2.len() {
+        log1
+    } else {
+        log2
+    }
+}
+
 pub fn print_diagnosis<T: Diagnose>(item: &T) {
     println!("[DIAGNOSTIC LOG]: {}", item.status_report());
 }
