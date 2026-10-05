@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum PowerLevel {
     Low,
@@ -5,11 +6,15 @@ pub enum PowerLevel {
     Critical,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum ReactorCommand {
     Shutdown,
     SetPower(PowerLevel),
-    Override {target_sector: String, bypass_code: u32},
+    Override {
+        target_sector: String,
+        bypass_code: u32,
+    },
     StatusQuery,
 }
 
@@ -23,7 +28,7 @@ pub mod safety {
             None
         }
     }
-    
+
     pub fn check_coolant_temp(temp: u32) {
         if temp > 1000 {
             panic!("CRITICAL OVERHEAT! Reactor core melting down!")
@@ -33,7 +38,10 @@ pub mod safety {
     }
 
     pub fn parse_reactor_id(reactor_id: &str) -> Result<u32, String> {
-        let id = reactor_id.trim().parse::<u32>().map_err(|_| String::from("Invalid reactor ID format!"))?;
+        let id = reactor_id
+            .trim()
+            .parse::<u32>()
+            .map_err(|_| String::from("Invalid reactor ID format!"))?;
         Ok(id)
     }
 }
@@ -46,16 +54,20 @@ pub fn process_command(cmd: ReactorCommand) {
         ReactorCommand::SetPower(level) => {
             println!("Adjusting reactor power level to: {:?}", level);
         }
-        ReactorCommand::Override {target_sector, bypass_code} => {
-            println!("SECURITY OVERRIDE! Sector: {}, Code: {}", target_sector, bypass_code);
+        ReactorCommand::Override {
+            target_sector,
+            bypass_code,
+        } => {
+            println!(
+                "SECURITY OVERRIDE! Sector: {}, Code: {}",
+                target_sector, bypass_code
+            );
         }
         ReactorCommand::StatusQuery => {
             println!("Running full reactor diagnostics...");
         }
-
     }
 }
-
 
 #[cfg(test)]
 mod tests {

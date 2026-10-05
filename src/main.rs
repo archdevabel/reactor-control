@@ -1,14 +1,17 @@
 use std::io::{self, Write};
-use std::collections::HashMap;
 
 use tokio::sync::mpsc;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 
 mod reactor;
-use reactor::{process_command, safety::check_reactor_sensor, safety::check_coolant_temp, safety::parse_reactor_id, ReactorCommand, PowerLevel};
+use reactor::{
+    ReactorCommand, process_command, safety::check_coolant_temp, safety::parse_reactor_id, safety::check_reactor_sensor,
+};
 
 mod diagnose;
-use diagnose::{ReactorCore, CoolantPump, Diagnose, print_diagnosis, TelemetryBuffer, compare_logs};
+use diagnose::{
+    CoolantPump, ReactorCore, TelemetryBuffer, print_diagnosis,
+};
 
 #[tokio::main]
 async fn main() {
@@ -26,13 +29,12 @@ async fn main() {
         for alert in alerts {
             sleep(Duration::from_secs(4)).await;
             let _ = tx.send(String::from(alert)).await;
-        } 
+        }
     });
 
     loop {
         while let Ok(alert) = rx.try_recv() {
             println!("\n[TELEMETRY ALERT]: {alert}");
-
         }
 
         print!("reactor>");
@@ -60,8 +62,14 @@ async fn main() {
                     println!("Reactor ID: not set");
                 }
 
-                let reactor = ReactorCore { core_id: 1, temp: 850 };
-                let pump = CoolantPump { pump_id: 1, is_active: true };
+                let reactor = ReactorCore {
+                    core_id: 1,
+                    temp: 850,
+                };
+                let pump = CoolantPump {
+                    pump_id: 1,
+                    is_active: true,
+                };
                 let telemetry_u32 = TelemetryBuffer { value: 42 };
                 let telemetry_f64 = TelemetryBuffer { value: 3.14 };
 
@@ -72,41 +80,48 @@ async fn main() {
 
                 process_command(ReactorCommand::StatusQuery);
             }
-            "set-id" => {
-                match parts.next() {
-                    Some(id_str) => {
-                        match parse_reactor_id(id_str) {
-                            Ok(id) => {
-                                reactor_id = Some(id);
-                                println!("Successfully initialized Reactor ID: {id}");
-                            }
-                            Err(err_msg) => {
-                                println!("Fail to set ID: {err_msg}");
+            "set-id" => match parts.next() {
+                Some(id_str) => match parse_reactor_id(id_str) {
+                    Ok(id) => {
+                        reactor_id = Some(id);
+                        println!("Successfully initialized Reactor ID: {id}");
+                    }
+                    Err(err_msg) => {
+                        println!("Fail to set ID: {err_msg}");
+                    }
+                },
+                None => {
+                    println!("Usage: set-id <ID>");
+                }
+            },
+            "check-temp" => match parts.next() {
+                Some(temp_str) => match temp_str.parse::<u32>() {
+                    Ok(temp) => {
+                        check_coolant_temp(temp);
+                    }
+                    Err(_) => {
+                        println!("Error: Please enter valid numerical temperature.");
+                    }
+                },
+                None => {
+                    println!("Usage: check-temp <TEMP>");
+                }
+            },
+            "check-sensor" => {
+                if let Some(sector_str) = parts.next() {
+                    match sector_str.parse::<u32>() {
+                        Ok(sector_code) => {
+                            match check_reactor_sensor(sector_code) {
+                                Some(level) => println!("Sensor alert for sector {sector_code}: {:?}", level),
+                                None => println!("Sector {sector_code} is nominal. No alerts."),
                             }
                         }
+                        Err(_) => println!("Error: Please enter a valid numerical sector code."),
                     }
-                    None => {
-                        println!("Usage: set-id <ID>");
-                    }
+                } else {
+                    println!("Usage: check-sensor <sector_code>");
                 }
-            }
-            "check-temp" => {
-                match parts.next() {
-                    Some(temp_str) => {
-                        match temp_str.parse::<u32>() {
-                            Ok(temp) => {
-                                check_coolant_temp(temp);
-                            }
-                            Err(_) => {
-                                println!("Error: Please enter valid numerical temperature.");
-                            }
-                        }
-                    }
-                    None => {
-                        println!("Usage: check-temp <TEMP>");
-                    }
-                }
-            }
+            },
             "exit" => {
                 println!("Shutting down reactor control interface...");
                 break;
@@ -114,10 +129,6 @@ async fn main() {
             _ => {
                 println!("Unknown Command: {command}");
             }
-
         }
-
-
     }
 }
-
