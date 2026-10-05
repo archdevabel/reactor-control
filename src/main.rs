@@ -1,9 +1,8 @@
 use std::io::{self, Write};
 use std::collections::HashMap;
 
-use std::sync::mpsc;
-use std::thread;
-use std::time::Duration;
+use tokio::sync::mpsc;
+use tokio::time::{sleep, Duration};
 
 mod reactor;
 use reactor::{process_command, safety::check_reactor_sensor, safety::check_coolant_temp, safety::parse_reactor_id, ReactorCommand, PowerLevel};
@@ -11,12 +10,13 @@ use reactor::{process_command, safety::check_reactor_sensor, safety::check_coola
 mod diagnose;
 use diagnose::{ReactorCore, CoolantPump, Diagnose, print_diagnosis, TelemetryBuffer, compare_logs};
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let mut reactor_id: Option<u32> = None;
 
-    let (tx, rx) = mpsc::channel();
+    let (tx, mut rx) = mpsc::channel(32);
 
-    thread::spawn(move || {
+    tokio::spawn(async move {
         let alerts = vec![
             "Sector 2 coolant pressure stabilizing...",
             "Sector 5 core temperature rising: 720C",
@@ -24,14 +24,14 @@ fn main() {
         ];
 
         for alert in alerts {
-            thread::sleep(Duration::from_secs(4));
-            let _ = tx.send(String::from(alert));
+            sleep(Duration::from_secs(4)).await;
+            let _ = tx.send(String::from(alert)).await;
         } 
     });
 
     loop {
         while let Ok(alert) = rx.try_recv() {
-            println!("[TELEMETRY ALERT]: {alert}");
+            println!("\n[TELEMETRY ALERT]: {alert}");
 
         }
 
