@@ -1,11 +1,12 @@
 use std::io::{self, Write};
+use std::sync::Arc;
 
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, Mutex};
 use tokio::time::{Duration, sleep};
 
 mod reactor;
 use reactor::{
-    ReactorCommand, process_command, safety::check_coolant_temp, safety::parse_reactor_id, safety::check_reactor_sensor,
+    ReactorCommand, process_command, safety::check_coolant_temp, safety::parse_reactor_id, safety::check_reactor_sensor
 };
 
 mod diagnose;
@@ -15,7 +16,9 @@ use diagnose::{
 
 #[tokio::main]
 async fn main() {
-    let mut reactor_id: Option<u32> = None;
+    let state = Arc::new(Mutex::new(reactor::ReactorState::new()));
+
+    let background_state = Arc::clone(&state);
 
     let (tx, mut rx) = mpsc::channel(32);
 
@@ -28,6 +31,12 @@ async fn main() {
 
         for alert in alerts {
             sleep(Duration::from_secs(4)).await;
+
+        {
+                let mut locked_state = background_state.lock().await;
+                locked_state.status_message = format!("ALERT: {alert}");
+        }
+
             let _ = tx.send(String::from(alert)).await;
         }
     });
@@ -56,11 +65,14 @@ async fn main() {
 
         match command {
             "status" => {
-                if let Some(id) = reactor_id {
+                let locked_state = state.lock().await;
+                if let Some(id) = locked_state.id {
                     println!("Reactor ID: {id}");
                 } else {
                     println!("Reactor ID: not set");
                 }
+
+                println!("Current system status: {}", locked_state.status_message);
 
                 let reactor = ReactorCore {
                     core_id: 1,
@@ -83,7 +95,8 @@ async fn main() {
             "set-id" => match parts.next() {
                 Some(id_str) => match parse_reactor_id(id_str) {
                     Ok(id) => {
-                        reactor_id = Some(id);
+                        let mut locked_state = state.lock().await;
+                        locked_state.id = Some(id);
                         println!("Successfully initialized Reactor ID: {id}");
                     }
                     Err(err_msg) => {

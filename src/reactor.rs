@@ -18,6 +18,22 @@ pub enum ReactorCommand {
     StatusQuery,
 }
 
+#[allow(dead_code)]
+#[derive(Debug)]
+pub struct ReactorState {
+    pub id: Option<u32>,
+    pub status_message: String,
+}
+
+impl ReactorState {
+    pub fn new() -> Self {
+        Self {
+            id: None,
+            status_message: String::from("Nominal"),
+        }
+    }
+}
+
 pub mod safety {
     use super::PowerLevel;
 
